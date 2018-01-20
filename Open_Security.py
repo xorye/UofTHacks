@@ -83,8 +83,8 @@ class Output:
         api = tweepy.API(auth)
 
         # Send a tweet
-        api.update_with_media("positive_detections/alert.jpg", "Alert!!! "
-                                                               "(THIS IS JUST A TEST AND IS NOT REAL)")
+        api.update_with_media("positive_detections/alert.jpg", "Alert!!! Someone in posession of a dangerous weapon has"
+                                                        "been detected in Bahen! (THIS IS JUST A TEST AND IS NOT REAL)")
 
 class OptionMenu:
     def __init__(self):
