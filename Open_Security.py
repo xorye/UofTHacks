@@ -84,7 +84,7 @@ class Output:
 
         # Send a tweet
         api.update_with_media("positive_detections/alert.jpg", "Alert!!! Someone in posession of a dangerous weapon has"
-                                                        "been detected in Bahen! (THIS IS JUST A TEST AND IS NOT REAL)")
+                                                    " been detected in Bahen! (THIS IS JUST A TEST AND IS NOT REAL)")
 
 class OptionMenu:
     def __init__(self):
