@@ -1,13 +1,13 @@
 import cv2
 import tweepy
 from tkinter import *
-import numpy as np
 
 
 class Output:
-    def __init__(self, security_level, object_detection):
+    def __init__(self, security_level, object_detection, object_boxing):
         self.security_level = security_level
         self.object_detection = object_detection
+        self.object_boxing = object_boxing
 
     """
     Main
@@ -43,10 +43,11 @@ class Output:
 
             # Outline any guns or knives in view and act accordingly
             if gun_in_view != () or knife_in_view != ():  # if not gun is detected then gun_in_view should be set to an empty tuple
-                for (x, y, w, h) in gun_in_view:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-                for (x, y, w, h) in knife_in_view:
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                if self.object_boxing:
+                    for (x, y, w, h) in gun_in_view:
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                    for (x, y, w, h) in knife_in_view:
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 object_in_view_frames += 1
                 if object_in_view_frames > 7 and not object_in_view_already_detected:
                     cv2.imwrite("positive_detections/alert.jpg", frame)
@@ -82,10 +83,8 @@ class Output:
         api = tweepy.API(auth)
 
         # Send a tweet
-        api.update_with_media("positive_detections/alert.jpg", "Alert: dsbhvdsjbvsjdbvjsdsj "
+        api.update_with_media("positive_detections/alert.jpg", "Alert!!! "
                                                                "(THIS IS JUST A TEST AND IS NOT REAL)")
-
-
 
 class OptionMenu:
     def __init__(self):
@@ -98,9 +97,15 @@ class OptionMenu:
         # variables to keep track of user preference
         self.security_level_input = 1  # 1 = High Security(guns, knife)   2 = Low Security(just knife)
         self.object_detection_input = True  # toggle the object detection feature
+        self.object_boxing_input = True  # toggle the object boxing feature
         security_message = self.determine_option_message()
+        boxing_message = self.determine_boxing_message()
         self.security_label = Label(self.master_screen, text=security_message, bg="Gray", fg="green", font=("Helvetica", 20))
         self.security_label.place(x=110, y=270)
+        self.boxing_label = Label(self.master_screen, text=boxing_message, bg="Gray", fg="green",
+                                    font=("Helvetica", 20))
+        self.boxing_label.place(x=170, y=310)
+
 
     def start(self):
         self.master_screen.destroy()
@@ -121,6 +126,10 @@ class OptionMenu:
         self.object_detection_input = not self.object_detection_input
         self.display_option_message()
 
+    def toggle_object_boxing(self):
+        self.object_boxing_input = not self.object_boxing_input
+        self.display_boxing_message()
+
     def determine_option_message(self):
         if not self.object_detection_input:
             security_message = "Selected Option = All object detection is off"
@@ -140,6 +149,17 @@ class OptionMenu:
         else:
             self.security_label.place(x=30, y=270)
 
+    def determine_boxing_message(self):
+        if self.object_boxing_input:
+            return "Object boxing is on "
+        else:
+            return "Object boxing is off"
+
+    def display_boxing_message(self):
+        self.boxing_label = Label(self.master_screen, text=self.determine_boxing_message(), bg="Gray", fg="green",
+                                  font=("Helvetica", 20))
+        self.boxing_label.place(x=170, y=310)
+
     def options_menu(self):
         # Declaring all widgets
         # Labels
@@ -158,23 +178,27 @@ class OptionMenu:
         dectection_button = Button(self.master_screen, text="Toggle Object Detection", command=self.toggle_object_detection,
                              font=("Helvetica", 15),
                              height=1, width=25)
+        object_boxing_button = Button(self.master_screen, text="Toggle Object Boxing", command=self.toggle_object_boxing,
+                              font=("Helvetica", 15),
+                              height=1, width=25)
 
         # Outputting all widgets
         # Labels
         app_title.place(x=175, y=30)
         # buttons
-        start_button.place(x=0, y=350)
-        exit_button.place(x=480, y=350)
-        low_button.place(x=160, y=140)
-        high_button.place(x=325, y=140)
-        dectection_button.place(x=160, y=210)
+        start_button.place(x=0, y=355)
+        exit_button.place(x=480, y=355)
+        low_button.place(x=160, y=110)
+        high_button.place(x=325, y=110)
+        dectection_button.place(x=160, y=170)
+        object_boxing_button.place(x=160, y=230)
 
         self.master_screen.mainloop()
-
 
 if __name__ == "__main__":
     while True:
         options_menu = OptionMenu()
         options_menu.options_menu()
-        output = Output(options_menu.security_level_input, options_menu.object_detection_input)
+        output = Output(options_menu.security_level_input, options_menu.object_detection_input,
+                        options_menu.object_boxing_input)
         output.start_video_processing()
