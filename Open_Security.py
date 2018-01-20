@@ -50,7 +50,7 @@ class Output:
                 object_in_view_frames += 1
                 if object_in_view_frames > 7 and not object_in_view_already_detected:
                     cv2.imwrite("positive_detections/alert.jpg", frame)
-                    #send_tweet() ########################################### remove after
+                    self.send_tweet()
                     object_in_view_already_detected = True
             else:
                 object_in_view_frames = 0
