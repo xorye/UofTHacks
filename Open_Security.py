@@ -1,12 +1,14 @@
 import cv2
 import tweepy
 from tkinter import *
+import playsound
 
 class Output:
-    def __init__(self, security_level, object_detection, object_boxing):
+    def __init__(self, security_level, object_detection, object_boxing, no_trespassing):
         self.security_level = security_level
         self.object_detection = object_detection
         self.object_boxing = object_boxing
+        self.no_trespassing = no_trespassing
 
     """
     Main
@@ -20,35 +22,44 @@ class Output:
         # the objects we want to detect (cascades)
         gun_cascade = cv2.CascadeClassifier("cascades/m9.xml")
         knife_cascade = cv2.CascadeClassifier("cascades/knife.xml")
+        person_cascade = cv2.CascadeClassifier("cascades/face.xml")
 
         object_in_view_frames = 0  # this is keep track of how many frames a gun is in view for
         object_in_view_already_detected = False
 
         while True:
             feed_on, frame = capture.read()
-            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # Scan for guns and store the result if needed
             if self.object_detection:
-                if self.security_level == 1:  # 1 == high security
+                if self.no_trespassing:
+                    person_in_view = person_cascade.detectMultiScale(frame, 1.3, 2)
+                    gun_in_view = ()
+                    knife_in_view = ()
+                elif self.security_level == 1:  # 1 == high security
                     gun_in_view = gun_cascade.detectMultiScale(frame, 2, 2)
                     knife_in_view = knife_cascade.detectMultiScale(frame, 2, 2)
+                    person_in_view = ()
                 else:
                     gun_in_view = ()
+                    person_in_view = ()
                     knife_in_view = knife_cascade.detectMultiScale(frame, 2, 2)
             else:
                 gun_in_view = ()
                 knife_in_view = ()
+                person_in_view = ()
 
             # Outline any guns or knives in view and act accordingly
-            if gun_in_view != () or knife_in_view != ():  # if not gun is detected then gun_in_view should be set to an empty tuple
+            if gun_in_view != () or knife_in_view != () or person_in_view != ():
                 if self.object_boxing:
                     for (x, y, w, h) in gun_in_view:
                         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
                     for (x, y, w, h) in knife_in_view:
                         cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                    for (x, y, w, h) in person_in_view:
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 object_in_view_frames += 1
-                if object_in_view_frames > 7 and not object_in_view_already_detected:
+                if object_in_view_frames > 4 and not object_in_view_already_detected:
                     cv2.imwrite("positive_detections/alert.jpg", frame)
                     self.send_tweet()
                     object_in_view_already_detected = True
@@ -81,9 +92,16 @@ class Output:
         auth.set_access_token(access_key, access_secret)
         api = tweepy.API(auth)
 
+        # make a sound
+        playsound.playsound("Alert_sound.wav")
+
         # Send a tweet
-        api.update_with_media("positive_detections/alert.jpg", "Alert!!! Someone in posession of a dangerous weapon has"
+        if self.no_trespassing:
+            api.update_with_media("positive_detections/alert.jpg", "Alert!!! A trespasser has been caught")
+        else:
+            api.update_with_media("positive_detections/alert.jpg", "Alert!!! Someone in posession of a dangerous weapon has"
                                                     " been detected in Bahen! (THIS IS JUST A TEST AND IS NOT REAL)")
+
 
 class OptionMenu:
     def __init__(self):
@@ -97,6 +115,8 @@ class OptionMenu:
         self.security_level_input = 1  # 1 = High Security(guns, knife)   2 = Low Security(just knife)
         self.object_detection_input = True  # toggle the object detection feature
         self.object_boxing_input = True  # toggle the object boxing feature
+        self.no_trespassing = False
+        # Place (print) user prederences on the screen
         security_message = self.determine_option_message()
         boxing_message = self.determine_boxing_message()
         self.security_label = Label(self.master_screen, text=security_message, bg="Gray", fg="green", font=("Helvetica", 20))
@@ -107,6 +127,11 @@ class OptionMenu:
 
 
     def start(self):
+        self.master_screen.destroy()
+
+    def start_no_trespassing(self):
+        self.no_trespassing = True
+        self.object_detection_input = True
         self.master_screen.destroy()
 
     def exit_app(self):
@@ -180,6 +205,10 @@ class OptionMenu:
         object_boxing_button = Button(self.master_screen, text="Toggle Object Boxing", command=self.toggle_object_boxing,
                               font=("Helvetica", 15),
                               height=1, width=25)
+        no_trespassing_button = Button(self.master_screen, text="No Trespassing Mode",
+                                      command=self.start_no_trespassing,
+                                      font=("Helvetica", 15),
+                                      height=1, width=18)
 
         # Outputting all widgets
         # Labels
@@ -191,6 +220,7 @@ class OptionMenu:
         high_button.place(x=325, y=110)
         dectection_button.place(x=160, y=170)
         object_boxing_button.place(x=160, y=230)
+        no_trespassing_button.place(x=140, y=355)
 
         self.master_screen.mainloop()
 
@@ -199,5 +229,5 @@ if __name__ == "__main__":
         options_menu = OptionMenu()
         options_menu.options_menu()
         output = Output(options_menu.security_level_input, options_menu.object_detection_input,
-                        options_menu.object_boxing_input)
+                        options_menu.object_boxing_input, options_menu.no_trespassing)
         output.start_video_processing()
