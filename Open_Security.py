@@ -2,6 +2,7 @@ import cv2
 import tweepy
 from tkinter import *
 import playsound
+import pygame
 
 class Output:
     def __init__(self, security_level, object_detection, object_boxing, no_trespassing):
@@ -93,7 +94,11 @@ class Output:
         api = tweepy.API(auth)
 
         # make a sound
-        playsound.playsound("Alert_sound.wav")
+        pygame.init()
+        pygame.mixer.init()
+        dis = pygame.display.set_mode((1, 1))  ### import a sound file and play it using pygame
+        sound = pygame.mixer.Sound("Alert_sound.wav")
+        sound.play()
 
         # Send a tweet
         if self.no_trespassing:
@@ -101,7 +106,7 @@ class Output:
         else:
             api.update_with_media("positive_detections/alert.jpg", "Alert!!! Someone in posession of a dangerous weapon has"
                                                     " been detected in Bahen! (THIS IS JUST A TEST AND IS NOT REAL)")
-
+        pygame.quit()
 
 class OptionMenu:
     def __init__(self):
