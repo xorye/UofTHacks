@@ -2,7 +2,6 @@ import cv2
 import tweepy
 from tkinter import *
 
-
 class Output:
     def __init__(self, security_level, object_detection, object_boxing):
         self.security_level = security_level
